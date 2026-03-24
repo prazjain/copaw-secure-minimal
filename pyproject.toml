@@ -59,27 +59,6 @@ dev = [
     "pre-commit>=4.2.0",
     "pytest-cov>=6.2.1",
 ]
-local = [
-    "huggingface_hub>=0.20.0",
-]
-llamacpp = [
-    "copaw[local]",
-    "llama-cpp-python>=0.3.0",
-]
-mlx = [
-    "copaw[local]",
-    "mlx-lm>=0.10.0; sys_platform == 'darwin'",
-]
-ollama = [
-    "ollama>=0.6.1",
-]
-whisper = [
-    "openai-whisper>=20231117",
-]
-full = [
-    "copaw[local,ollama,llamacpp,whisper]",
-    "mlx-lm>=0.10.0; sys_platform == 'darwin'",
-]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

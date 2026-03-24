@@ -300,10 +300,8 @@ def init_cmd(
                 "Select transcription provider:\n"
                 "  disabled       - no transcription\n"
                 "  whisper_api    - remote Whisper API endpoint\n"
-                "  local_whisper  - locally installed openai-whisper\n"
-                "                   (requires ffmpeg + openai-whisper)\n"
                 "Provider:",
-                options=["disabled", "whisper_api", "local_whisper"],
+                options=["disabled", "whisper_api"],
                 default=existing.agents.transcription_provider_type,
             )
             existing.agents.transcription_provider_type = provider_type

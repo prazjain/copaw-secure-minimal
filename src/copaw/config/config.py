@@ -367,14 +367,12 @@ class AgentsConfig(BaseModel):
     transcription_provider_type: Literal[
         "disabled",
         "whisper_api",
-        "local_whisper",
     ] = Field(
         default="disabled",
         description=(
             "Transcription backend. "
             '"disabled": no transcription; '
-            '"whisper_api": remote OpenAI-compatible endpoint; '
-            '"local_whisper": locally installed openai-whisper.'
+            '"whisper_api": remote OpenAI-compatible endpoint.'
         ),
     )
     transcription_provider_id: str = Field(

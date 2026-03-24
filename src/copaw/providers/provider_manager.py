@@ -23,9 +23,7 @@ from copaw.providers.models import ModelSlotConfig
 from copaw.providers.openai_provider import OpenAIProvider
 from copaw.providers.anthropic_provider import AnthropicProvider
 from copaw.providers.gemini_provider import GeminiProvider
-from copaw.providers.ollama_provider import OllamaProvider
 from copaw.constant import SECRET_DIR
-from copaw.local_models import create_local_chat_model
 
 logger = logging.getLogger(__name__)
 
@@ -164,20 +162,6 @@ PROVIDER_ALIYUN_CODINGPLAN = OpenAIProvider(
     freeze_url=True,
 )
 
-PROVIDER_LLAMACPP = DefaultProvider(
-    id="llamacpp",
-    name="llama.cpp (Local)",
-    is_local=True,
-    require_api_key=False,
-)
-
-PROVIDER_MLX = DefaultProvider(
-    id="mlx",
-    name="MLX (Local, Apple Silicon)",
-    is_local=True,
-    require_api_key=False,
-)
-
 PROVIDER_OPENAI = OpenAIProvider(
     id="openai",
     name="OpenAI",
@@ -262,14 +246,6 @@ PROVIDER_GEMINI = GeminiProvider(
     support_model_discovery=True,
 )
 
-PROVIDER_OLLAMA = OllamaProvider(
-    id="ollama",
-    name="Ollama",
-    require_api_key=False,
-    support_model_discovery=True,
-    generate_kwargs={"max_tokens": None},
-)
-
 PROVIDER_LMSTUDIO = OpenAIProvider(
     id="lmstudio",
     name="LM Studio",
@@ -307,7 +283,6 @@ class ProviderManager:
         except Exception as e:
             logger.warning("Failed to migrate legacy providers: %s", e)
         self._init_from_storage()
-        self.update_local_models()
 
     def _prepare_disk_storage(self):
         """Prepare directory structure"""
@@ -331,10 +306,7 @@ class ProviderManager:
         self._add_builtin(PROVIDER_GEMINI)
         self._add_builtin(PROVIDER_MINIMAX_CN)
         self._add_builtin(PROVIDER_MINIMAX)
-        self._add_builtin(PROVIDER_OLLAMA)
         self._add_builtin(PROVIDER_LMSTUDIO)
-        self._add_builtin(PROVIDER_LLAMACPP)
-        self._add_builtin(PROVIDER_MLX)
 
     def _add_builtin(self, provider: Provider):
         self.builtin_providers[provider.id] = provider
@@ -546,8 +518,6 @@ class ProviderManager:
             return AnthropicProvider.model_validate(data)
         if provider_id == "gemini" or chat_model == "GeminiChatModel":
             return GeminiProvider.model_validate(data)
-        if provider_id == "ollama":
-            return OllamaProvider.model_validate(data)
         if data.get("is_local", False):
             return DefaultProvider.model_validate(data)
         return OpenAIProvider.model_validate(data)
@@ -667,27 +637,6 @@ class ProviderManager:
         if active_model:
             self.active_model = active_model
 
-    def update_local_models(self):
-        """Update the model list of a local provider."""
-        try:
-            from ..local_models.manager import list_local_models
-            from ..local_models.schema import BackendType
-
-            llamacpp_models: list[ModelInfo] = []
-            mlx_models: list[ModelInfo] = []
-
-            for model in list_local_models():
-                info = ModelInfo(id=model.id, name=model.display_name)
-                if model.backend == BackendType.LLAMACPP:
-                    llamacpp_models.append(info)
-                elif model.backend == BackendType.MLX:
-                    mlx_models.append(info)
-            PROVIDER_LLAMACPP.models = llamacpp_models
-            PROVIDER_MLX.models = mlx_models
-        except ImportError:
-            # local_models dependencies not installed; leave model lists empty
-            pass
-
     @staticmethod
     def get_instance() -> "ProviderManager":
         """Get the singleton instance of ProviderManager."""
@@ -706,11 +655,5 @@ class ProviderManager:
         if provider is None:
             raise ValueError(
                 f"Active provider '{model.provider_id}' not found.",
-            )
-        if provider.is_local:
-            return create_local_chat_model(
-                model_id=model.model,
-                stream=True,
-                generate_kwargs={"max_tokens": None},
             )
         return provider.get_chat_model_instance(model.model)
