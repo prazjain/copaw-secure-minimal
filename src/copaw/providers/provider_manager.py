@@ -307,9 +307,21 @@ class ProviderManager:
         self._add_builtin(PROVIDER_MINIMAX_CN)
         self._add_builtin(PROVIDER_MINIMAX)
         self._add_builtin(PROVIDER_LMSTUDIO)
+        self._load_custom_auth_provider()
 
     def _add_builtin(self, provider: Provider):
         self.builtin_providers[provider.id] = provider
+
+    def _load_custom_auth_provider(self):
+        """Load a custom auth provider plugin if configured."""
+        try:
+            from .custom_auth_provider import load_custom_auth_provider
+
+            provider = load_custom_auth_provider()
+            if provider is not None:
+                self._add_builtin(provider)
+        except Exception as e:
+            logger.warning("Failed to load custom auth provider: %s", e)
 
     async def list_provider_info(self) -> List[ProviderInfo]:
         tasks = [
