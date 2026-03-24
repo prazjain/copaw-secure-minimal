@@ -1,7 +1,7 @@
 [project]
 name = "copaw"
 dynamic = ["version"]
-description = "CoPaw is a **personal assistant** that runs in your own environment. It communicates via a web console and runs scheduled tasks according to your configuration. **What it can do is driven by Skills — the possibilities are open-ended.** Built-in skills include cron, PDF/Office handling, news digest, file reading, and more; you can add custom skills. All data and tasks run on your machine; no third-party hosting."
+description = "CoPaw (Secure Minimal) — a stripped-down, enterprise-ready AI assistant that runs on your own machine. Communicates via a web console, connects to remote LLM providers via OpenAI-compatible APIs (with custom auth plugin support), and extends capabilities through Skills. Built-in skills include cron, PDF handling, news digest, file reading, and more. All data and tasks run locally; no third-party hosting."
 readme = "README.md"
 requires-python = ">=3.10,<3.14"
 dependencies = [
@@ -33,7 +33,7 @@ packages = { find = { where = ["src"] } }
 include-package-data = true
 
 [tool.setuptools.package-data]
-# Dockerfile copies console build output to src/copaw/console/ (no dist subdir).
+# Console build output is copied to src/copaw/console/ during install from source.
 "copaw" = [
     "console/**",
     "agents/md_files/**",
