@@ -31,7 +31,7 @@ SECURITY_WARNING = """
 Security warning — please read.
 
 CoPaw is a personal assistant that runs in your own environment. It can connect to
-channels (DingTalk, Feishu, QQ, Discord, iMessage, etc.) and run skills that read
+channels (Console) and run skills that read
 files, run commands, and call external APIs. By default it is a single-operator
 boundary: one trusted user. A malicious or confused prompt can lead the agent to
 do unsafe things if tools are enabled.
@@ -311,7 +311,7 @@ def init_cmd(
         # --- channels (interactive when not --defaults) ---
         if not use_defaults and prompt_confirm(
             "Configure channels? "
-            "(iMessage/Discord/DingTalk/Feishu/QQ/Console)",
+            "(Console)",
             default=False,
         ):
             configure_channels_interactive(existing)

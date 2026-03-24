@@ -42,7 +42,7 @@ class SendMessageRequest(BaseModel):
     channel: str = Field(
         ...,
         description=(
-            "Target channel (e.g., console, dingtalk, feishu, discord)"
+            "Target channel (e.g., console)"
         ),
     )
     target_user: str = Field(

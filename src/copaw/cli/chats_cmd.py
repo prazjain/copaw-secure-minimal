@@ -48,7 +48,7 @@ def chats_group() -> None:
 @click.option(
     "--channel",
     default=None,
-    help="Filter by channel: console/imessage/dingtalk/discord/qq",
+    help="Filter by channel: console",
 )
 @click.option(
     "--base-url",
@@ -74,8 +74,8 @@ def list_chats(
     Examples:
       copaw chats list
       copaw chats list --user-id alice
-      copaw chats list --channel discord
-      copaw chats list --user-id alice --channel discord
+      copaw chats list --channel console
+      copaw chats list --user-id alice --channel console
     """
     base_url = _base_url(ctx, base_url)
     params: dict[str, str] = {}
@@ -152,7 +152,7 @@ def get_chat(
     "--channel",
     default=DEFAULT_CHANNEL,
     help=(
-        f"Channel name: console/imessage/dingtalk/discord/qq "
+        f"Channel name: console "
         f"(default {DEFAULT_CHANNEL})"
     ),
 )
@@ -179,10 +179,10 @@ def create_chat(
 
     \b
     Inline creation examples:
-      copaw chats create --session-id "discord:alice" \\
+      copaw chats create --session-id "console:alice" \\
         --user-id alice --name "My Chat"
       copaw chats create --session-id s1 --user-id u1 \\
-        --channel imessage
+        --channel console
 
     \b
     JSON file creation example:

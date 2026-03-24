@@ -109,7 +109,7 @@ def list_agents_cmd(ctx: click.Context, base_url: Optional[str]) -> None:
 @click.option(
     "--channel",
     default=None,
-    help="Filter by channel (e.g., console, dingtalk, feishu)",
+    help="Filter by channel (e.g., console)",
 )
 @click.option(
     "--user-id",
@@ -158,7 +158,7 @@ def list_sessions_cmd(
         jq '.inter_agent_sessions[] | select(.to_agent=="finance_expert")'
 
       # Filter by channel
-      copaw message list-sessions --agent-id my_bot --channel dingtalk
+      copaw message list-sessions --agent-id my_bot --channel console
 
       # Filter by user and limit results
       copaw message list-sessions --agent-id my_bot --user-id alice --limit 10
@@ -171,7 +171,7 @@ def list_sessions_cmd(
         "unique_users": [
           {
             "user_id": "alice",
-            "channels": ["dingtalk", "console"],
+            "channels": ["console"],
             "session_count": 3,
             "last_active": "2024-03-20T10:30:00Z"
           }
@@ -312,8 +312,7 @@ def list_sessions_cmd(
     "--channel",
     required=True,
     help=(
-        "Target channel (e.g., console, dingtalk, feishu, discord, "
-        "imessage, qq)"
+        "Target channel (e.g., console)"
     ),
 )
 @click.option(
@@ -349,7 +348,7 @@ def send_cmd(
     """Send a text message to a channel.
 
     This command allows an agent to proactively send messages to users
-    via configured channels (console, dingtalk, feishu, etc.).
+    via configured channels (console).
 
     IMPORTANT: All 5 parameters are REQUIRED. You MUST query first to get
     valid target-user and target-session values.
@@ -588,7 +587,7 @@ def _handle_final_mode(
     "--channel",
     default=None,
     help=(
-        "Optional: Channel to send response to (e.g., console, dingtalk). "
+        "Optional: Channel to send response to (e.g., console). "
         "If specified, requires --target-user and --target-session."
     ),
 )
