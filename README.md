@@ -181,7 +181,6 @@ If you're **not** using the custom auth provider plugin, configure API keys manu
 | `COPAW_CUSTOM_AUTH_PROVIDER` | *(none)* | Path to custom auth provider plugin file |
 | `COPAW_PORT` | `8088` | Port for the web console |
 | `COPAW_LOG_LEVEL` | `info` | Log level (`debug`, `info`, `warning`, `error`) |
-| `COPAW_TELEMETRY` | `true` | Set to `false` to disable anonymous telemetry |
 
 ---
 
