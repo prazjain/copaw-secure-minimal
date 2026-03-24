@@ -23,13 +23,6 @@ except ImportError:  # pragma: no cover - compatibility fallback
     AnthropicChatFormatter = None
     AnthropicChatModel = None
 
-try:
-    from agentscope.formatter import GeminiChatFormatter
-    from agentscope.model import GeminiChatModel
-except ImportError:  # pragma: no cover - compatibility fallback
-    GeminiChatFormatter = None
-    GeminiChatModel = None
-
 from .utils.tool_message_utils import _sanitize_tool_messages
 from ..providers import ProviderManager
 from ..providers.retry_chat_model import RetryChatModel
@@ -56,8 +49,6 @@ _CHAT_MODEL_FORMATTER_MAP: dict[Type[ChatModelBase], Type[FormatterBase]] = {
 }
 if AnthropicChatModel is not None and AnthropicChatFormatter is not None:
     _CHAT_MODEL_FORMATTER_MAP[AnthropicChatModel] = AnthropicChatFormatter
-if GeminiChatModel is not None and GeminiChatFormatter is not None:
-    _CHAT_MODEL_FORMATTER_MAP[GeminiChatModel] = GeminiChatFormatter
 
 
 def _get_formatter_for_chat_model(
@@ -362,7 +353,7 @@ def _create_formatter_instance(
     kwargs: dict[str, Any] = {}
     if issubclass(
         base_formatter_class,
-        (OpenAIChatFormatter, GeminiChatFormatter),
+        (OpenAIChatFormatter,),
     ):
         kwargs["promote_tool_result_images"] = True
     return formatter_class(**kwargs)

@@ -22,7 +22,6 @@ from copaw.providers.provider import (
 from copaw.providers.models import ModelSlotConfig
 from copaw.providers.openai_provider import OpenAIProvider
 from copaw.providers.anthropic_provider import AnthropicProvider
-from copaw.providers.gemini_provider import GeminiProvider
 from copaw.constant import SECRET_DIR
 
 logger = logging.getLogger(__name__)
@@ -119,19 +118,6 @@ DEEPSEEK_MODELS: List[ModelInfo] = [
 ]
 
 ANTHROPIC_MODELS: List[ModelInfo] = []
-
-GEMINI_MODELS: List[ModelInfo] = [
-    ModelInfo(id="gemini-3.1-pro-preview", name="Gemini 3.1 Pro Preview"),
-    ModelInfo(id="gemini-3-flash-preview", name="Gemini 3 Flash Preview"),
-    ModelInfo(
-        id="gemini-3.1-flash-lite-preview",
-        name="Gemini 3.1 Flash Lite Preview",
-    ),
-    ModelInfo(id="gemini-2.5-pro", name="Gemini 2.5 Pro"),
-    ModelInfo(id="gemini-2.5-flash", name="Gemini 2.5 Flash"),
-    ModelInfo(id="gemini-2.5-flash-lite", name="Gemini 2.5 Flash Lite"),
-    ModelInfo(id="gemini-2.0-flash", name="Gemini 2.0 Flash"),
-]
 
 PROVIDER_MODELSCOPE = OpenAIProvider(
     id="modelscope",
@@ -235,17 +221,6 @@ PROVIDER_ANTHROPIC = AnthropicProvider(
     freeze_url=True,
 )
 
-PROVIDER_GEMINI = GeminiProvider(
-    id="gemini",
-    name="Google Gemini",
-    base_url="https://generativelanguage.googleapis.com",
-    api_key_prefix="",
-    models=GEMINI_MODELS,
-    chat_model="GeminiChatModel",
-    freeze_url=True,
-    support_model_discovery=True,
-)
-
 PROVIDER_LMSTUDIO = OpenAIProvider(
     id="lmstudio",
     name="LM Studio",
@@ -303,7 +278,6 @@ class ProviderManager:
         self._add_builtin(PROVIDER_KIMI_INTL)
         self._add_builtin(PROVIDER_DEEPSEEK)
         self._add_builtin(PROVIDER_ANTHROPIC)
-        self._add_builtin(PROVIDER_GEMINI)
         self._add_builtin(PROVIDER_MINIMAX_CN)
         self._add_builtin(PROVIDER_MINIMAX)
         self._add_builtin(PROVIDER_LMSTUDIO)
@@ -528,8 +502,6 @@ class ProviderManager:
 
         if provider_id == "anthropic" or chat_model == "AnthropicChatModel":
             return AnthropicProvider.model_validate(data)
-        if provider_id == "gemini" or chat_model == "GeminiChatModel":
-            return GeminiProvider.model_validate(data)
         if data.get("is_local", False):
             return DefaultProvider.model_validate(data)
         return OpenAIProvider.model_validate(data)
