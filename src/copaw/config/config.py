@@ -403,16 +403,19 @@ class LastDispatchConfig(BaseModel):
 
 
 class MCPClientConfig(BaseModel):
-    """Configuration for a single MCP client."""
+    """Configuration for a single MCP client.
+
+    Only local stdio transport is allowed in this enterprise build.
+    Remote transports (streamable_http, sse) are disabled to prevent
+    data from leaving the environment.
+    """
 
     model_config = ConfigDict(populate_by_name=True)
 
     name: str
     description: str = ""
     enabled: bool = True
-    transport: Literal["stdio", "streamable_http", "sse"] = "stdio"
-    url: str = ""
-    headers: Dict[str, str] = Field(default_factory=dict)
+    transport: Literal["stdio"] = "stdio"
     command: str = ""
     args: List[str] = Field(default_factory=list)
     env: Dict[str, str] = Field(default_factory=dict)
@@ -430,47 +433,38 @@ class MCPClientConfig(BaseModel):
         if "isActive" in payload and "enabled" not in payload:
             payload["enabled"] = payload["isActive"]
 
-        if "baseUrl" in payload and "url" not in payload:
-            payload["url"] = payload["baseUrl"]
-
         if "type" in payload and "transport" not in payload:
             payload["transport"] = payload["type"]
-
-        if (
-            "transport" not in payload
-            and (payload.get("url") or payload.get("baseUrl"))
-            and not payload.get("command")
-        ):
-            payload["transport"] = "streamable_http"
 
         raw_transport = payload.get("transport")
         if isinstance(raw_transport, str):
             normalized = raw_transport.strip().lower()
-            transport_alias_map = {
-                "streamablehttp": "streamable_http",
-                "http": "streamable_http",
-                "stdio": "stdio",
-                "sse": "sse",
-            }
-            payload["transport"] = transport_alias_map.get(
-                normalized,
-                normalized,
+            if normalized != "stdio":
+                raise ValueError(
+                    f"Remote MCP transport '{normalized}' is not allowed "
+                    "in this enterprise build. Only local 'stdio' transport "
+                    "is permitted."
+                )
+            payload["transport"] = "stdio"
+
+        # Reject any attempt to configure remote URLs
+        if payload.get("url") or payload.get("baseUrl"):
+            raise ValueError(
+                "Remote MCP server URLs are not allowed in this enterprise "
+                "build. Only local stdio-based MCP servers are permitted."
             )
+
+        # Strip remote-only fields silently
+        for key in ("url", "baseUrl", "headers"):
+            payload.pop(key, None)
 
         return payload
 
     @model_validator(mode="after")
     def _validate_transport_config(self):
-        """Validate required fields for each MCP transport type."""
-        if self.transport == "stdio":
-            if not self.command.strip():
-                raise ValueError("stdio MCP client requires non-empty command")
-            return self
-
-        if not self.url.strip():
-            raise ValueError(
-                f"{self.transport} MCP client requires non-empty url",
-            )
+        """Validate required fields for stdio transport."""
+        if not self.command.strip():
+            raise ValueError("stdio MCP client requires non-empty command")
         return self
 
 
@@ -478,20 +472,11 @@ class MCPConfig(BaseModel):
     """MCP clients configuration.
 
     Uses a dict to allow dynamic client definitions.
-    Default tavily_search client is created and auto-enabled if API key exists.
+    Only local stdio-based MCP servers are allowed in this enterprise build.
     """
 
     clients: Dict[str, MCPClientConfig] = Field(
-        default_factory=lambda: {
-            "tavily_search": MCPClientConfig(
-                name="tavily_mcp",
-                # Auto-enable if TAVILY_API_KEY exists in environment
-                enabled=bool(os.getenv("TAVILY_API_KEY")),
-                command="npx",
-                args=["-y", "tavily-mcp@latest"],
-                env={"TAVILY_API_KEY": os.getenv("TAVILY_API_KEY", "")},
-            ),
-        },
+        default_factory=dict,
     )
 
 

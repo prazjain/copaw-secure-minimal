@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, List, Literal, Optional, Type, TYPE_CHECKING
 
 from agentscope.agent import ReActAgent
-from agentscope.mcp import HttpStatefulClient, StdIOStatefulClient
+from agentscope.mcp import StdIOStatefulClient
 from agentscope.memory import InMemoryMemory
 from agentscope.message import Msg
 from agentscope.tool import Toolkit
@@ -511,7 +511,10 @@ class CoPawAgent(ToolGuardMixin, ReActAgent):
 
     @staticmethod
     def _rebuild_mcp_client(client: Any) -> Any | None:
-        """Rebuild a fresh MCP client instance from stored config metadata."""
+        """Rebuild a fresh MCP client instance from stored config metadata.
+
+        Only stdio transport is supported in this enterprise build.
+        """
         rebuild_info = getattr(client, "_copaw_rebuild_info", None)
         if not isinstance(rebuild_info, dict):
             return None
@@ -519,29 +522,16 @@ class CoPawAgent(ToolGuardMixin, ReActAgent):
         transport = rebuild_info.get("transport")
         name = rebuild_info.get("name")
 
-        try:
-            if transport == "stdio":
-                rebuilt_client = StdIOStatefulClient(
-                    name=name,
-                    command=rebuild_info.get("command"),
-                    args=rebuild_info.get("args", []),
-                    env=rebuild_info.get("env", {}),
-                    cwd=rebuild_info.get("cwd"),
-                )
-                setattr(rebuilt_client, "_copaw_rebuild_info", rebuild_info)
-                return rebuilt_client
+        if transport != "stdio":
+            return None
 
-            raw_headers = rebuild_info.get("headers") or {}
-            headers = (
-                {k: os.path.expandvars(v) for k, v in raw_headers.items()}
-                if raw_headers
-                else None
-            )
-            rebuilt_client = HttpStatefulClient(
+        try:
+            rebuilt_client = StdIOStatefulClient(
                 name=name,
-                transport=transport,
-                url=rebuild_info.get("url"),
-                headers=headers,
+                command=rebuild_info.get("command"),
+                args=rebuild_info.get("args", []),
+                env=rebuild_info.get("env", {}),
+                cwd=rebuild_info.get("cwd"),
             )
             setattr(rebuilt_client, "_copaw_rebuild_info", rebuild_info)
             return rebuilt_client

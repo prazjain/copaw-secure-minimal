@@ -14,23 +14,18 @@ router = APIRouter(prefix="/mcp", tags=["mcp"])
 
 
 class MCPClientInfo(BaseModel):
-    """MCP client information for API responses."""
+    """MCP client information for API responses.
+
+    Only local stdio transport is supported in this enterprise build.
+    """
 
     key: str = Field(..., description="Unique client key identifier")
     name: str = Field(..., description="Client display name")
     description: str = Field(default="", description="Client description")
     enabled: bool = Field(..., description="Whether the client is enabled")
-    transport: Literal["stdio", "streamable_http", "sse"] = Field(
-        ...,
-        description="MCP transport type",
-    )
-    url: str = Field(
-        default="",
-        description="Remote MCP endpoint URL (for HTTP/SSE transports)",
-    )
-    headers: Dict[str, str] = Field(
-        default_factory=dict,
-        description="HTTP headers for remote transport",
+    transport: Literal["stdio"] = Field(
+        default="stdio",
+        description="MCP transport type (stdio only)",
     )
     command: str = Field(
         default="",
@@ -51,7 +46,7 @@ class MCPClientInfo(BaseModel):
 
 
 class MCPClientCreateRequest(BaseModel):
-    """Request body for creating/updating an MCP client."""
+    """Request body for creating an MCP client (stdio only)."""
 
     name: str = Field(..., description="Client display name")
     description: str = Field(default="", description="Client description")
@@ -59,21 +54,9 @@ class MCPClientCreateRequest(BaseModel):
         default=True,
         description="Whether to enable the client",
     )
-    transport: Literal["stdio", "streamable_http", "sse"] = Field(
-        default="stdio",
-        description="MCP transport type",
-    )
-    url: str = Field(
-        default="",
-        description="Remote MCP endpoint URL (for HTTP/SSE transports)",
-    )
-    headers: Dict[str, str] = Field(
-        default_factory=dict,
-        description="HTTP headers for remote transport",
-    )
     command: str = Field(
-        default="",
-        description="Command to launch the MCP server",
+        ...,
+        description="Command to launch the local MCP server",
     )
     args: List[str] = Field(
         default_factory=list,
@@ -98,21 +81,9 @@ class MCPClientUpdateRequest(BaseModel):
         None,
         description="Whether to enable the client",
     )
-    transport: Optional[Literal["stdio", "streamable_http", "sse"]] = Field(
-        None,
-        description="MCP transport type",
-    )
-    url: Optional[str] = Field(
-        None,
-        description="Remote MCP endpoint URL (for HTTP/SSE transports)",
-    )
-    headers: Optional[Dict[str, str]] = Field(
-        None,
-        description="HTTP headers for remote transport",
-    )
     command: Optional[str] = Field(
         None,
-        description="Command to launch the MCP server",
+        description="Command to launch the local MCP server",
     )
     args: Optional[List[str]] = Field(
         None,
@@ -167,20 +138,13 @@ def _build_client_info(key: str, client: MCPClientConfig) -> MCPClientInfo:
         if client.env
         else {}
     )
-    masked_headers = (
-        {k: _mask_env_value(v) for k, v in client.headers.items()}
-        if client.headers
-        else {}
-    )
 
     return MCPClientInfo(
         key=key,
         name=client.name,
         description=client.description,
         enabled=client.enabled,
-        transport=client.transport,
-        url=client.url,
-        headers=masked_headers,
+        transport="stdio",
         command=client.command,
         args=client.args,
         env=masked_env,
@@ -260,14 +224,12 @@ async def create_mcp_client(
             f"update.",
         )
 
-    # Create new client config
+    # Create new client config (stdio only in enterprise build)
     new_client = MCPClientConfig(
         name=client.name,
         description=client.description,
         enabled=client.enabled,
-        transport=client.transport,
-        url=client.url,
-        headers=client.headers,
+        transport="stdio",
         command=client.command,
         args=client.args,
         env=client.env,
