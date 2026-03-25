@@ -23,6 +23,8 @@ except ImportError:  # pragma: no cover - compatibility fallback
     AnthropicChatFormatter = None
     AnthropicChatModel = None
 
+from ..providers.claude_cli_provider import ClaudeCLIChatModel
+
 from .utils.tool_message_utils import _sanitize_tool_messages
 from ..providers import ProviderManager
 from ..providers.retry_chat_model import RetryChatModel
@@ -49,6 +51,8 @@ _CHAT_MODEL_FORMATTER_MAP: dict[Type[ChatModelBase], Type[FormatterBase]] = {
 }
 if AnthropicChatModel is not None and AnthropicChatFormatter is not None:
     _CHAT_MODEL_FORMATTER_MAP[AnthropicChatModel] = AnthropicChatFormatter
+# Claude CLI model uses OpenAI-compatible content blocks.
+_CHAT_MODEL_FORMATTER_MAP[ClaudeCLIChatModel] = OpenAIChatFormatter
 
 
 def _get_formatter_for_chat_model(

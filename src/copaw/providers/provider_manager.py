@@ -22,6 +22,11 @@ from copaw.providers.provider import (
 from copaw.providers.models import ModelSlotConfig
 from copaw.providers.openai_provider import OpenAIProvider
 from copaw.providers.anthropic_provider import AnthropicProvider
+from copaw.providers.claude_cli_provider import (
+    ClaudeCLIProvider,
+    CLAUDE_CLI_MODELS,
+    is_claude_cli_available,
+)
 from copaw.constant import SECRET_DIR
 
 logger = logging.getLogger(__name__)
@@ -231,6 +236,18 @@ PROVIDER_LMSTUDIO = OpenAIProvider(
     generate_kwargs={"max_tokens": None},
 )
 
+PROVIDER_CLAUDE_CLI = ClaudeCLIProvider(
+    id="claude-cli",
+    name="Claude CLI (Local)",
+    is_local=True,
+    require_api_key=False,
+    api_key_prefix="",
+    models=CLAUDE_CLI_MODELS,
+    chat_model="ClaudeCLIChatModel",
+    freeze_url=True,
+    support_connection_check=True,
+)
+
 
 class ActiveModelsInfo(BaseModel):
     active_llm: ModelSlotConfig | None
@@ -281,6 +298,7 @@ class ProviderManager:
         self._add_builtin(PROVIDER_MINIMAX_CN)
         self._add_builtin(PROVIDER_MINIMAX)
         self._add_builtin(PROVIDER_LMSTUDIO)
+        self._add_builtin(PROVIDER_CLAUDE_CLI)
         self._load_custom_auth_provider()
 
     def _add_builtin(self, provider: Provider):
@@ -500,6 +518,8 @@ class ProviderManager:
         provider_id = str(data.get("id", ""))
         chat_model = str(data.get("chat_model", ""))
 
+        if provider_id == "claude-cli" or chat_model == "ClaudeCLIChatModel":
+            return ClaudeCLIProvider.model_validate(data)
         if provider_id == "anthropic" or chat_model == "AnthropicChatModel":
             return AnthropicProvider.model_validate(data)
         if data.get("is_local", False):
@@ -620,6 +640,35 @@ class ProviderManager:
         active_model = self.load_active_model()
         if active_model:
             self.active_model = active_model
+
+        # Auto-prefer Claude CLI when enabled and no model is configured yet.
+        self._maybe_auto_activate_claude_cli()
+
+    def _maybe_auto_activate_claude_cli(self) -> None:
+        """If ``COPAW_PREFER_CLAUDE_CLI`` is set and the ``claude`` binary is
+        available, automatically activate the Claude CLI provider (using the
+        ``sonnet`` model) when no active model has been configured."""
+        from copaw.constant import EnvVarLoader
+
+        prefer = EnvVarLoader.get_bool("COPAW_PREFER_CLAUDE_CLI", False)
+        if not prefer:
+            return
+        if self.active_model is not None:
+            return
+        if not is_claude_cli_available():
+            logger.info(
+                "COPAW_PREFER_CLAUDE_CLI is set but 'claude' binary "
+                "not found on PATH; skipping auto-activation.",
+            )
+            return
+        self.active_model = ModelSlotConfig(
+            provider_id="claude-cli",
+            model="sonnet",
+        )
+        logger.info(
+            "Auto-activated Claude CLI provider (model: sonnet) "
+            "because COPAW_PREFER_CLAUDE_CLI is enabled.",
+        )
 
     @staticmethod
     def get_instance() -> "ProviderManager":
