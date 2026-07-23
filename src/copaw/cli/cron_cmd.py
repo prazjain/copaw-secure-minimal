@@ -234,7 +234,7 @@ def _build_spec_from_cli(
     "--channel",
     default=None,
     help=(
-        "Delivery channel: e.g. imessage, dingtalk, discord, qq, console. "
+        "Delivery channel: e.g. console. "
         "Required when not using -f/--file."
     ),
 )

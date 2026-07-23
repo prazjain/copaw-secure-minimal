@@ -20,7 +20,6 @@ from ..utils.logging import setup_logger, add_copaw_file_handler
 from .auth import AuthMiddleware
 from .routers import router as api_router, create_agent_scoped_router
 from .routers.agent_scoped import AgentContextMiddleware
-from .routers.voice import voice_router
 from ..envs import load_envs_into_environ
 from ..providers.provider_manager import ProviderManager
 from .multi_agent_manager import MultiAgentManager
@@ -157,22 +156,6 @@ async def lifespan(
 
     auto_register_from_env()
 
-    try:
-        from ..utils.telemetry import (
-            collect_and_upload_telemetry,
-            has_telemetry_been_collected,
-            is_telemetry_opted_out,
-        )
-
-        if not is_telemetry_opted_out(
-            WORKING_DIR,
-        ) and not has_telemetry_been_collected(WORKING_DIR):
-            collect_and_upload_telemetry(WORKING_DIR)
-    except Exception:
-        logger.debug(
-            "Telemetry collection skipped due to error",
-            exc_info=True,
-        )
 
     # --- Multi-agent migration and initialization ---
     logger.info("Checking for legacy config migration...")
@@ -337,9 +320,6 @@ app.include_router(
     tags=["agent"],
 )
 
-# Voice channel: Twilio-facing endpoints at root level (not under /api/).
-# POST /voice/incoming, WS /voice/ws, POST /voice/status-callback
-app.include_router(voice_router, tags=["voice"])
 
 # Console static files and SPA fallback
 # Register these AFTER API routes to ensure proper routing priority

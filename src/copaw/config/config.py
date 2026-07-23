@@ -39,84 +39,6 @@ class BaseChannelConfig(BaseModel):
     require_mention: bool = False
 
 
-class IMessageChannelConfig(BaseChannelConfig):
-    db_path: str = "~/Library/Messages/chat.db"
-    poll_sec: float = 1.0
-    media_dir: Optional[str] = None
-    max_decoded_size: int = (
-        10 * 1024 * 1024
-    )  # 10MB default limit for Base64 data
-
-
-class DiscordConfig(BaseChannelConfig):
-    bot_token: str = ""
-    http_proxy: str = ""
-    http_proxy_auth: str = ""
-
-
-class DingTalkConfig(BaseChannelConfig):
-    client_id: str = ""
-    client_secret: str = ""
-    message_type: str = "markdown"
-    card_template_id: str = ""
-    card_template_key: str = "content"
-    robot_code: str = ""
-    media_dir: Optional[str] = None
-
-
-class FeishuConfig(BaseChannelConfig):
-    """Feishu/Lark channel: app_id, app_secret; optional encrypt_key,
-    verification_token for event handler. media_dir for received media.
-    domain: 'feishu' for China, 'lark' for international.
-    """
-
-    app_id: str = ""
-    app_secret: str = ""
-    encrypt_key: str = ""
-    verification_token: str = ""
-    media_dir: Optional[str] = None
-    domain: Literal["feishu", "lark"] = "feishu"
-
-
-class QQConfig(BaseChannelConfig):
-    app_id: str = ""
-    client_secret: str = ""
-    markdown_enabled: bool = True
-
-
-class TelegramConfig(BaseChannelConfig):
-    bot_token: str = ""
-    http_proxy: str = ""
-    http_proxy_auth: str = ""
-    show_typing: Optional[bool] = None
-
-
-class MQTTConfig(BaseChannelConfig):
-    host: str = ""
-    port: Optional[int] = None
-    transport: str = ""
-    clean_session: bool = True
-    qos: int = 2
-    username: Optional[str] = None
-    password: Optional[str] = None
-    subscribe_topic: str = ""
-    publish_topic: str = ""
-    tls_enabled: bool = False
-    tls_ca_certs: Optional[str] = None
-    tls_certfile: Optional[str] = None
-    tls_keyfile: Optional[str] = None
-
-
-class MattermostConfig(BaseChannelConfig):
-    """Mattermost channel: WebSocket polling and REST API."""
-
-    url: str = ""
-    bot_token: str = ""
-    media_dir: Optional[str] = None
-    show_typing: Optional[bool] = None
-    thread_follow_without_mention: bool = False
-
-
 class ConsoleConfig(BaseChannelConfig):
     """Console channel: prints agent responses to stdout."""
 
@@ -124,66 +46,12 @@ class ConsoleConfig(BaseChannelConfig):
     media_dir: Optional[str] = None
 
 
-class WecomConfig(BaseChannelConfig):
-    """WeCom (Enterprise WeChat) AI Bot channel config."""
-
-    bot_id: str = ""
-    secret: str = ""
-    media_dir: Optional[str] = None
-    welcome_text: str = ""
-    max_reconnect_attempts: int = -1
-
-
-class MatrixConfig(BaseChannelConfig):
-    """Matrix channel configuration."""
-
-    homeserver: str = ""
-    user_id: str = ""
-    access_token: str = ""
-
-
-class VoiceChannelConfig(BaseChannelConfig):
-    """Voice channel: Twilio ConversationRelay + Cloudflare Tunnel."""
-
-    twilio_account_sid: str = ""
-    twilio_auth_token: str = ""
-    phone_number: str = ""
-    phone_number_sid: str = ""
-    tts_provider: str = "google"
-    tts_voice: str = "en-US-Journey-D"
-    stt_provider: str = "deepgram"
-    language: str = "en-US"
-    welcome_greeting: str = "Hi! This is CoPaw. How can I help you?"
-
-
-class XiaoYiConfig(BaseChannelConfig):
-    """XiaoYi channel: Huawei A2A protocol via WebSocket."""
-
-    ak: str = ""  # Access Key
-    sk: str = ""  # Secret Key
-    agent_id: str = ""  # Agent ID from XiaoYi platform
-    ws_url: str = "wss://hag.cloud.huawei.com/openclaw/v1/ws/link"
-    task_timeout_ms: int = 3600000  # 1 hour task timeout
-
-
 class ChannelConfig(BaseModel):
     """Built-in channel configs; extra keys allowed for plugin channels."""
 
     model_config = ConfigDict(extra="allow")
 
-    imessage: IMessageChannelConfig = IMessageChannelConfig()
-    discord: DiscordConfig = DiscordConfig()
-    dingtalk: DingTalkConfig = DingTalkConfig()
-    feishu: FeishuConfig = FeishuConfig()
-    qq: QQConfig = QQConfig()
-    telegram: TelegramConfig = TelegramConfig()
-    mattermost: MattermostConfig = MattermostConfig()
-    mqtt: MQTTConfig = MQTTConfig()
     console: ConsoleConfig = ConsoleConfig()
-    matrix: MatrixConfig = MatrixConfig()
-    voice: VoiceChannelConfig = VoiceChannelConfig()
-    wecom: WecomConfig = WecomConfig()
-    xiaoyi: XiaoYiConfig = XiaoYiConfig()
 
 
 class LastApiConfig(BaseModel):
@@ -499,14 +367,12 @@ class AgentsConfig(BaseModel):
     transcription_provider_type: Literal[
         "disabled",
         "whisper_api",
-        "local_whisper",
     ] = Field(
         default="disabled",
         description=(
             "Transcription backend. "
             '"disabled": no transcription; '
-            '"whisper_api": remote OpenAI-compatible endpoint; '
-            '"local_whisper": locally installed openai-whisper.'
+            '"whisper_api": remote OpenAI-compatible endpoint.'
         ),
     )
     transcription_provider_id: str = Field(
@@ -535,16 +401,19 @@ class LastDispatchConfig(BaseModel):
 
 
 class MCPClientConfig(BaseModel):
-    """Configuration for a single MCP client."""
+    """Configuration for a single MCP client.
+
+    Only local stdio transport is allowed in this enterprise build.
+    Remote transports (streamable_http, sse) are disabled to prevent
+    data from leaving the environment.
+    """
 
     model_config = ConfigDict(populate_by_name=True)
 
     name: str
     description: str = ""
     enabled: bool = True
-    transport: Literal["stdio", "streamable_http", "sse"] = "stdio"
-    url: str = ""
-    headers: Dict[str, str] = Field(default_factory=dict)
+    transport: Literal["stdio"] = "stdio"
     command: str = ""
     args: List[str] = Field(default_factory=list)
     env: Dict[str, str] = Field(default_factory=dict)
@@ -562,47 +431,38 @@ class MCPClientConfig(BaseModel):
         if "isActive" in payload and "enabled" not in payload:
             payload["enabled"] = payload["isActive"]
 
-        if "baseUrl" in payload and "url" not in payload:
-            payload["url"] = payload["baseUrl"]
-
         if "type" in payload and "transport" not in payload:
             payload["transport"] = payload["type"]
-
-        if (
-            "transport" not in payload
-            and (payload.get("url") or payload.get("baseUrl"))
-            and not payload.get("command")
-        ):
-            payload["transport"] = "streamable_http"
 
         raw_transport = payload.get("transport")
         if isinstance(raw_transport, str):
             normalized = raw_transport.strip().lower()
-            transport_alias_map = {
-                "streamablehttp": "streamable_http",
-                "http": "streamable_http",
-                "stdio": "stdio",
-                "sse": "sse",
-            }
-            payload["transport"] = transport_alias_map.get(
-                normalized,
-                normalized,
+            if normalized != "stdio":
+                raise ValueError(
+                    f"Remote MCP transport '{normalized}' is not allowed "
+                    "in this enterprise build. Only local 'stdio' transport "
+                    "is permitted."
+                )
+            payload["transport"] = "stdio"
+
+        # Reject any attempt to configure remote URLs
+        if payload.get("url") or payload.get("baseUrl"):
+            raise ValueError(
+                "Remote MCP server URLs are not allowed in this enterprise "
+                "build. Only local stdio-based MCP servers are permitted."
             )
+
+        # Strip remote-only fields silently
+        for key in ("url", "baseUrl", "headers"):
+            payload.pop(key, None)
 
         return payload
 
     @model_validator(mode="after")
     def _validate_transport_config(self):
-        """Validate required fields for each MCP transport type."""
-        if self.transport == "stdio":
-            if not self.command.strip():
-                raise ValueError("stdio MCP client requires non-empty command")
-            return self
-
-        if not self.url.strip():
-            raise ValueError(
-                f"{self.transport} MCP client requires non-empty url",
-            )
+        """Validate required fields for stdio transport."""
+        if not self.command.strip():
+            raise ValueError("stdio MCP client requires non-empty command")
         return self
 
 
@@ -610,20 +470,11 @@ class MCPConfig(BaseModel):
     """MCP clients configuration.
 
     Uses a dict to allow dynamic client definitions.
-    Default tavily_search client is created and auto-enabled if API key exists.
+    Only local stdio-based MCP servers are allowed in this enterprise build.
     """
 
     clients: Dict[str, MCPClientConfig] = Field(
-        default_factory=lambda: {
-            "tavily_search": MCPClientConfig(
-                name="tavily_mcp",
-                # Auto-enable if TAVILY_API_KEY exists in environment
-                enabled=bool(os.getenv("TAVILY_API_KEY")),
-                command="npx",
-                args=["-y", "tavily-mcp@latest"],
-                env={"TAVILY_API_KEY": os.getenv("TAVILY_API_KEY", "")},
-            ),
-        },
+        default_factory=dict,
     )
 
 
@@ -832,19 +683,7 @@ class Config(BaseModel):
 
 
 ChannelConfigUnion = Union[
-    IMessageChannelConfig,
-    DiscordConfig,
-    DingTalkConfig,
-    FeishuConfig,
-    QQConfig,
-    TelegramConfig,
-    MattermostConfig,
-    MQTTConfig,
     ConsoleConfig,
-    MatrixConfig,
-    VoiceChannelConfig,
-    WecomConfig,
-    XiaoYiConfig,
 ]
 
 

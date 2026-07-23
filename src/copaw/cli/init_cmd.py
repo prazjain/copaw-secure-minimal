@@ -31,7 +31,7 @@ SECURITY_WARNING = """
 Security warning — please read.
 
 CoPaw is a personal assistant that runs in your own environment. It can connect to
-channels (DingTalk, Feishu, QQ, Discord, iMessage, etc.) and run skills that read
+channels (Console) and run skills that read
 files, run commands, and call external APIs. By default it is a single-operator
 boundary: one trusted user. A malicious or confused prompt can lead the agent to
 do unsafe things if tools are enabled.
@@ -54,21 +54,6 @@ Recommended baseline:
 Review your config and skills regularly; limit tool scope to what you need.
 """
 
-TELEMETRY_INFO = """
-Help improve CoPaw by sharing anonymous usage data!
-
-We collect only:
-• CoPaw version (e.g., 0.0.7)
-• Install method (pip, Docker, or desktop app)
-• OS and version (e.g., macOS 14.0, Ubuntu 22.04)
-• Python version (e.g., 3.11)
-• CPU architecture (e.g., x86_64, arm64)
-• GPU availability (detected, not detailed specs)
-
-No personal data collected! No files, no credentials, no identifiable information.
-This helps us understand CoPaw's usage environment and prioritize improvements.
-"""
-
 
 def _echo_security_warning_box() -> None:
     """Print SECURITY_WARNING in a rich panel with blue border."""
@@ -77,18 +62,6 @@ def _echo_security_warning_box() -> None:
         Panel(
             SECURITY_WARNING.strip(),
             title="[bold]🐾 Security warning — please read[/bold]",
-            border_style="blue",
-        ),
-    )
-
-
-def _echo_telemetry_info_box() -> None:
-    """Print TELEMETRY_INFO in a rich panel with blue border."""
-    console = Console()
-    console.print(
-        Panel(
-            TELEMETRY_INFO.strip(),
-            title="[bold]📊 Help improve CoPaw[/bold]",
             border_style="blue",
         ),
     )
@@ -167,29 +140,6 @@ def init_cmd(
             )
             raise click.Abort()
     working_dir.mkdir(parents=True, exist_ok=True)
-
-    # --- Telemetry collection (optional, anonymous) ---
-    from ..utils.telemetry import (
-        collect_and_upload_telemetry,
-        has_telemetry_been_collected,
-        is_telemetry_opted_out,
-        mark_telemetry_collected,
-    )
-
-    if not is_telemetry_opted_out(
-        working_dir,
-    ) and not has_telemetry_been_collected(working_dir):
-        if use_defaults:
-            success = collect_and_upload_telemetry(working_dir)
-
-        else:
-            _echo_telemetry_info_box()
-            if prompt_confirm("Share usage data?", default=True):
-                success = collect_and_upload_telemetry(working_dir)
-                if success:
-                    click.echo("✓ Thank you!")
-            else:
-                mark_telemetry_collected(working_dir, opted_out=True)
 
     # --- Ensure default agent workspace exists ---
     click.echo("\n=== Default Workspace Initialization ===")
@@ -300,10 +250,8 @@ def init_cmd(
                 "Select transcription provider:\n"
                 "  disabled       - no transcription\n"
                 "  whisper_api    - remote Whisper API endpoint\n"
-                "  local_whisper  - locally installed openai-whisper\n"
-                "                   (requires ffmpeg + openai-whisper)\n"
                 "Provider:",
-                options=["disabled", "whisper_api", "local_whisper"],
+                options=["disabled", "whisper_api"],
                 default=existing.agents.transcription_provider_type,
             )
             existing.agents.transcription_provider_type = provider_type
@@ -311,7 +259,7 @@ def init_cmd(
         # --- channels (interactive when not --defaults) ---
         if not use_defaults and prompt_confirm(
             "Configure channels? "
-            "(iMessage/Discord/DingTalk/Feishu/QQ/Console)",
+            "(Console)",
             default=False,
         ):
             configure_channels_interactive(existing)

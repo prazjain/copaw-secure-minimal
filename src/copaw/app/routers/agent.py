@@ -304,7 +304,7 @@ async def put_audio_mode(
     summary="Get transcription provider type",
     description=(
         "Get the transcription provider type. "
-        'Values: "disabled", "whisper_api", "local_whisper".'
+        'Values: "disabled", "whisper_api".'
     ),
 )
 async def get_transcription_provider_type() -> dict:
@@ -323,8 +323,7 @@ async def get_transcription_provider_type() -> dict:
     description=(
         "Set the transcription provider type. "
         '"disabled": no transcription; '
-        '"whisper_api": remote Whisper endpoint; '
-        '"local_whisper": locally installed openai-whisper.'
+        '"whisper_api": remote Whisper endpoint.'
     ),
 )
 async def put_transcription_provider_type(
@@ -339,7 +338,7 @@ async def put_transcription_provider_type(
     """Set the transcription provider type."""
     raw = body.get("transcription_provider_type")
     provider_type = (str(raw) if raw is not None else "").strip().lower()
-    valid = {"disabled", "whisper_api", "local_whisper"}
+    valid = {"disabled", "whisper_api"}
     if provider_type not in valid:
         raise HTTPException(
             status_code=400,
@@ -352,23 +351,6 @@ async def put_transcription_provider_type(
     config.agents.transcription_provider_type = provider_type
     save_config(config)
     return {"transcription_provider_type": provider_type}
-
-
-@router.get(
-    "/local-whisper-status",
-    summary="Check local whisper availability",
-    description=(
-        "Check whether the local whisper provider can be used. "
-        "Returns availability of ffmpeg and openai-whisper."
-    ),
-)
-async def get_local_whisper_status() -> dict:
-    """Check local whisper dependencies."""
-    from ...agents.utils.audio_transcription import (
-        check_local_whisper_available,
-    )
-
-    return check_local_whisper_available()
 
 
 @router.get(

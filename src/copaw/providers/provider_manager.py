@@ -22,10 +22,12 @@ from copaw.providers.provider import (
 from copaw.providers.models import ModelSlotConfig
 from copaw.providers.openai_provider import OpenAIProvider
 from copaw.providers.anthropic_provider import AnthropicProvider
-from copaw.providers.gemini_provider import GeminiProvider
-from copaw.providers.ollama_provider import OllamaProvider
+from copaw.providers.claude_cli_provider import (
+    ClaudeCLIProvider,
+    CLAUDE_CLI_MODELS,
+    is_claude_cli_available,
+)
 from copaw.constant import SECRET_DIR
-from copaw.local_models import create_local_chat_model
 
 logger = logging.getLogger(__name__)
 
@@ -122,19 +124,6 @@ DEEPSEEK_MODELS: List[ModelInfo] = [
 
 ANTHROPIC_MODELS: List[ModelInfo] = []
 
-GEMINI_MODELS: List[ModelInfo] = [
-    ModelInfo(id="gemini-3.1-pro-preview", name="Gemini 3.1 Pro Preview"),
-    ModelInfo(id="gemini-3-flash-preview", name="Gemini 3 Flash Preview"),
-    ModelInfo(
-        id="gemini-3.1-flash-lite-preview",
-        name="Gemini 3.1 Flash Lite Preview",
-    ),
-    ModelInfo(id="gemini-2.5-pro", name="Gemini 2.5 Pro"),
-    ModelInfo(id="gemini-2.5-flash", name="Gemini 2.5 Flash"),
-    ModelInfo(id="gemini-2.5-flash-lite", name="Gemini 2.5 Flash Lite"),
-    ModelInfo(id="gemini-2.0-flash", name="Gemini 2.0 Flash"),
-]
-
 PROVIDER_MODELSCOPE = OpenAIProvider(
     id="modelscope",
     name="ModelScope",
@@ -162,20 +151,6 @@ PROVIDER_ALIYUN_CODINGPLAN = OpenAIProvider(
     # This provider doesn't support connection check without model config
     support_connection_check=False,
     freeze_url=True,
-)
-
-PROVIDER_LLAMACPP = DefaultProvider(
-    id="llamacpp",
-    name="llama.cpp (Local)",
-    is_local=True,
-    require_api_key=False,
-)
-
-PROVIDER_MLX = DefaultProvider(
-    id="mlx",
-    name="MLX (Local, Apple Silicon)",
-    is_local=True,
-    require_api_key=False,
 )
 
 PROVIDER_OPENAI = OpenAIProvider(
@@ -251,25 +226,6 @@ PROVIDER_ANTHROPIC = AnthropicProvider(
     freeze_url=True,
 )
 
-PROVIDER_GEMINI = GeminiProvider(
-    id="gemini",
-    name="Google Gemini",
-    base_url="https://generativelanguage.googleapis.com",
-    api_key_prefix="",
-    models=GEMINI_MODELS,
-    chat_model="GeminiChatModel",
-    freeze_url=True,
-    support_model_discovery=True,
-)
-
-PROVIDER_OLLAMA = OllamaProvider(
-    id="ollama",
-    name="Ollama",
-    require_api_key=False,
-    support_model_discovery=True,
-    generate_kwargs={"max_tokens": None},
-)
-
 PROVIDER_LMSTUDIO = OpenAIProvider(
     id="lmstudio",
     name="LM Studio",
@@ -278,6 +234,18 @@ PROVIDER_LMSTUDIO = OpenAIProvider(
     api_key_prefix="",
     support_model_discovery=True,
     generate_kwargs={"max_tokens": None},
+)
+
+PROVIDER_CLAUDE_CLI = ClaudeCLIProvider(
+    id="claude-cli",
+    name="Claude CLI (Local)",
+    is_local=True,
+    require_api_key=False,
+    api_key_prefix="",
+    models=CLAUDE_CLI_MODELS,
+    chat_model="ClaudeCLIChatModel",
+    freeze_url=True,
+    support_connection_check=True,
 )
 
 
@@ -307,7 +275,6 @@ class ProviderManager:
         except Exception as e:
             logger.warning("Failed to migrate legacy providers: %s", e)
         self._init_from_storage()
-        self.update_local_models()
 
     def _prepare_disk_storage(self):
         """Prepare directory structure"""
@@ -328,16 +295,25 @@ class ProviderManager:
         self._add_builtin(PROVIDER_KIMI_INTL)
         self._add_builtin(PROVIDER_DEEPSEEK)
         self._add_builtin(PROVIDER_ANTHROPIC)
-        self._add_builtin(PROVIDER_GEMINI)
         self._add_builtin(PROVIDER_MINIMAX_CN)
         self._add_builtin(PROVIDER_MINIMAX)
-        self._add_builtin(PROVIDER_OLLAMA)
         self._add_builtin(PROVIDER_LMSTUDIO)
-        self._add_builtin(PROVIDER_LLAMACPP)
-        self._add_builtin(PROVIDER_MLX)
+        self._add_builtin(PROVIDER_CLAUDE_CLI)
+        self._load_custom_auth_provider()
 
     def _add_builtin(self, provider: Provider):
         self.builtin_providers[provider.id] = provider
+
+    def _load_custom_auth_provider(self):
+        """Load a custom auth provider plugin if configured."""
+        try:
+            from .custom_auth_provider import load_custom_auth_provider
+
+            provider = load_custom_auth_provider()
+            if provider is not None:
+                self._add_builtin(provider)
+        except Exception as e:
+            logger.warning("Failed to load custom auth provider: %s", e)
 
     async def list_provider_info(self) -> List[ProviderInfo]:
         tasks = [
@@ -542,12 +518,10 @@ class ProviderManager:
         provider_id = str(data.get("id", ""))
         chat_model = str(data.get("chat_model", ""))
 
+        if provider_id == "claude-cli" or chat_model == "ClaudeCLIChatModel":
+            return ClaudeCLIProvider.model_validate(data)
         if provider_id == "anthropic" or chat_model == "AnthropicChatModel":
             return AnthropicProvider.model_validate(data)
-        if provider_id == "gemini" or chat_model == "GeminiChatModel":
-            return GeminiProvider.model_validate(data)
-        if provider_id == "ollama":
-            return OllamaProvider.model_validate(data)
         if data.get("is_local", False):
             return DefaultProvider.model_validate(data)
         return OpenAIProvider.model_validate(data)
@@ -667,26 +641,34 @@ class ProviderManager:
         if active_model:
             self.active_model = active_model
 
-    def update_local_models(self):
-        """Update the model list of a local provider."""
-        try:
-            from ..local_models.manager import list_local_models
-            from ..local_models.schema import BackendType
+        # Auto-prefer Claude CLI when enabled and no model is configured yet.
+        self._maybe_auto_activate_claude_cli()
 
-            llamacpp_models: list[ModelInfo] = []
-            mlx_models: list[ModelInfo] = []
+    def _maybe_auto_activate_claude_cli(self) -> None:
+        """If ``COPAW_PREFER_CLAUDE_CLI`` is set and the ``claude`` binary is
+        available, automatically activate the Claude CLI provider (using the
+        ``sonnet`` model) when no active model has been configured."""
+        from copaw.constant import EnvVarLoader
 
-            for model in list_local_models():
-                info = ModelInfo(id=model.id, name=model.display_name)
-                if model.backend == BackendType.LLAMACPP:
-                    llamacpp_models.append(info)
-                elif model.backend == BackendType.MLX:
-                    mlx_models.append(info)
-            PROVIDER_LLAMACPP.models = llamacpp_models
-            PROVIDER_MLX.models = mlx_models
-        except ImportError:
-            # local_models dependencies not installed; leave model lists empty
-            pass
+        prefer = EnvVarLoader.get_bool("COPAW_PREFER_CLAUDE_CLI", False)
+        if not prefer:
+            return
+        if self.active_model is not None:
+            return
+        if not is_claude_cli_available():
+            logger.info(
+                "COPAW_PREFER_CLAUDE_CLI is set but 'claude' binary "
+                "not found on PATH; skipping auto-activation.",
+            )
+            return
+        self.active_model = ModelSlotConfig(
+            provider_id="claude-cli",
+            model="sonnet",
+        )
+        logger.info(
+            "Auto-activated Claude CLI provider (model: sonnet) "
+            "because COPAW_PREFER_CLAUDE_CLI is enabled.",
+        )
 
     @staticmethod
     def get_instance() -> "ProviderManager":
@@ -706,11 +688,5 @@ class ProviderManager:
         if provider is None:
             raise ValueError(
                 f"Active provider '{model.provider_id}' not found.",
-            )
-        if provider.is_local:
-            return create_local_chat_model(
-                model_id=model.model,
-                stream=True,
-                generate_kwargs={"max_tokens": None},
             )
         return provider.get_chat_model_instance(model.model)

@@ -169,6 +169,10 @@ DASHSCOPE_BASE_URL = EnvVarLoader.get_str(
 # When unset, CORS middleware is not applied.
 CORS_ORIGINS = EnvVarLoader.get_str("COPAW_CORS_ORIGINS", "").strip()
 
+# When True and 'claude' CLI is on PATH, auto-activate the Claude CLI
+# provider if no active model has been configured yet.
+PREFER_CLAUDE_CLI = EnvVarLoader.get_bool("COPAW_PREFER_CLAUDE_CLI", False)
+
 # LLM API retry configuration
 LLM_MAX_RETRIES = EnvVarLoader.get_int(
     "COPAW_LLM_MAX_RETRIES",

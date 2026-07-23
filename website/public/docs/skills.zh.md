@@ -25,9 +25,6 @@
 | **himalaya**                 | 通过 CLI 管理邮件（IMAP/SMTP）。使用 `himalaya` 列出、阅读、搜索、整理邮件，支持多账户与附件管理。                                          | https://github.com/openclaw/openclaw/tree/main/skills/himalaya |
 | **news**                     | 从指定新闻站点查询最新新闻，支持政治、财经、社会、国际、科技、体育、娱乐等分类，并做摘要。                                                  | 自建                                                           |
 | **pdf**                      | PDF 相关操作：阅读、提取文字/表格、合并/拆分、旋转、水印、创建、填表、加密/解密、OCR 等。                                                   | https://github.com/anthropics/skills/tree/main/skills/pdf      |
-| **docx**                     | Word 文档（.docx）的创建、阅读、编辑，含目录、页眉页脚、表格、图片、修订与批注等。                                                          | https://github.com/anthropics/skills/tree/main/skills/docx     |
-| **pptx**                     | PPT（.pptx）的创建、阅读、编辑，含模板、版式、备注与批注等。                                                                                | https://github.com/anthropics/skills/tree/main/skills/pptx     |
-| **xlsx**                     | 表格（.xlsx、.xlsm、.csv、.tsv）的读取、编辑、创建与格式整理，支持公式与数据分析。                                                          | https://github.com/anthropics/skills/tree/main/skills/xlsx     |
 | **browser_visible**          | 以可见模式（headed）启动真实浏览器窗口，适用于演示、调试或需要人工参与（如登录、验证码）的场景。                                            | 自建                                                           |
 
 ---
