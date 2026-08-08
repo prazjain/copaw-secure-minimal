@@ -21,7 +21,7 @@ class ChannelAddress:
     extra: Optional[Dict[str, Any]] = None
 
     def to_handle(self) -> str:
-        """String handle for to_handle (e.g. discord:ch:123)."""
+        """String handle for to_handle (e.g. console:ch:123)."""
         if self.extra and "to_handle" in self.extra:
             return str(self.extra["to_handle"])
         return f"{self.kind}:{self.id}"
@@ -29,16 +29,7 @@ class ChannelAddress:
 
 # Built-in channel type identifiers. Plugin channels use arbitrary str keys.
 BUILTIN_CHANNEL_TYPES = (
-    "imessage",
-    "discord",
-    "dingtalk",
-    "feishu",
-    "qq",
-    "telegram",
-    "mqtt",
     "console",
-    "voice",
-    "xiaoyi",
 )
 
 # ChannelType is str to allow plugin channels; built-in set above.

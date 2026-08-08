@@ -64,20 +64,8 @@ def _drain_same_key(
 
 async def _process_batch(ch: BaseChannel, batch: List[Any]) -> None:
     """Merge if needed and process one payload (native or request)."""
-    if ch.channel == "dingtalk" and batch and ch._is_native_payload(batch[0]):
-        first = batch[0] if isinstance(batch[0], dict) else {}
-        logger.info(
-            "manager _process_batch dingtalk: batch_len=%s first_has_sw=%s",
-            len(batch),
-            bool(first.get("session_webhook")),
-        )
     if len(batch) > 1 and ch._is_native_payload(batch[0]):
         merged = ch.merge_native_items(batch)
-        if ch.channel == "dingtalk" and isinstance(merged, dict):
-            logger.info(
-                "manager _process_batch dingtalk merged: has_sw=%s",
-                bool(merged.get("session_webhook")),
-            )
         await ch._consume_one_request(merged)
     elif len(batch) > 1:
         merged = ch.merge_requests(batch)
@@ -285,17 +273,6 @@ class ChannelManager:
             q.put_nowait(payload)
             return
         key = ch.get_debounce_key(payload)
-        if channel_id == "dingtalk" and isinstance(payload, dict):
-            logger.info(
-                "manager _enqueue_one dingtalk: key=%s in_progress=%s "
-                "payload_has_sw=%s -> %s",
-                key,
-                (channel_id, key) in self._in_progress,
-                bool(payload.get("session_webhook")),
-                "pending"
-                if (channel_id, key) in self._in_progress
-                else "queue",
-            )
         if (channel_id, key) in self._in_progress:
             self._pending.setdefault((channel_id, key), []).append(payload)
             return
@@ -445,7 +422,7 @@ class ChannelManager:
         """
         new_channel_name = new_channel.channel
         # 1) Ensure queue and enqueue callback before start() so the channel
-        #    (e.g. DingTalk) registers its handler with a valid callback.
+        #    registers its handler with a valid callback.
         if new_channel_name not in self._queues:
             if getattr(new_channel, "uses_manager_queue", True):
                 self._queues[new_channel_name] = asyncio.Queue(
@@ -459,7 +436,7 @@ class ChannelManager:
                     self._consumer_tasks.append(task)
         new_channel.set_enqueue(self._make_enqueue_cb(new_channel_name))
 
-        # 2) Start new channel outside lock (may be slow, e.g. DingTalk stream)
+        # 2) Start new channel outside lock (may be slow)
         logger.info(f"Pre-starting new channel: {new_channel_name}")
         try:
             await new_channel.start()

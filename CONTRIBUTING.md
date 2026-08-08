@@ -2,7 +2,7 @@
 
 ## Welcome! 🐾
 
-Thank you for your interest in contributing to CoPaw! CoPaw is an open-source **personal AI assistant** that runs in your own environment—on your machine or in the cloud. It connects to DingTalk, Feishu, QQ, Discord, iMessage, and other chat apps, supports scheduled tasks and heartbeat, and extends its capabilities through **Skills**. We warmly welcome contributions that help make CoPaw more useful for everyone: whether you add a new channel, a new model provider, a Skill, improve docs, or fix bugs.
+Thank you for your interest in contributing to CoPaw! CoPaw is an open-source **personal AI assistant** that runs in your own environment. It communicates via a web console, supports scheduled tasks and heartbeat, and extends its capabilities through **Skills**. This is a stripped-down enterprise fork focused on remote model providers via OpenAI-compatible APIs. We welcome contributions that help make CoPaw more useful: whether you add a new model provider, a Skill, improve docs, or fix bugs.
 
 **Quick links:** [GitHub](https://github.com/agentscope-ai/CoPaw) · [Docs](https://copaw.agentscope.io/) · [License: Apache 2.0](LICENSE)
 
@@ -69,7 +69,7 @@ docs(skills): document Skills Hub import
 
 - **Required local gate (must pass before push/PR):**
   ```bash
-  pip install -e ".[dev,full]"
+  pip install -e ".[dev]"
   pre-commit install
   pre-commit run --all-files
   pytest
@@ -94,11 +94,11 @@ CoPaw is designed to be **extensible**: you can add models, channels, Skills, an
 
 ### Adding New Models / Model Providers
 
-CoPaw supports **multiple model backends**: cloud APIs (e.g. DashScope, ModelScope), **Ollama**, and local backends (**llama.cpp**, **MLX**). You can contribute in two ways:
+CoPaw supports **remote model providers** via OpenAI-compatible APIs. Users can also use the **custom auth provider plugin** (`custom_auth_provider.py`) for enterprise authentication flows. You can contribute in two ways:
 
 #### A. Custom provider (user configuration)
 
-Users can add **custom providers** via the Console or `providers.json`: any OpenAI-compatible API (e.g. vLLM, SGLang, private endpoints) can be configured with a unique ID, base URL, API key, and optional model list. No code change is required for standard OpenAI-compatible APIs.
+Users can add **custom providers** via the Console: any OpenAI-compatible API (e.g. vLLM, SGLang, private endpoints) can be configured with a unique ID, base URL, API key, and optional model list. For enterprise auth (OAuth, vault, etc.), use the custom auth provider plugin — see the README for details.
 
 #### B. New built-in provider or new ChatModel (code contribution)
 
@@ -106,7 +106,7 @@ If you want to add a **new built-in provider** or a **new API protocol** that is
 
 1. **Provider definition** (in `src/copaw/providers/registry.py` or equivalent):
    - Add a `ProviderDefinition` with `id`, `name`, `default_base_url`, `api_key_prefix`, and optionally `models` and `chat_model`.
-   - For local/self-hosted backends, set `is_local` as appropriate.
+   - All providers are remote; `is_local` is not used in this fork.
 
 2. **Chat model class** (if the API is not OpenAI-compatible):
    - Implement a class inheriting from `agentscope.model.ChatModelBase` (or CoPaw’s local/remote wrappers where applicable).
@@ -116,26 +116,6 @@ If you want to add a **new built-in provider** or a **new API protocol** that is
 3. **Documentation:** Document the new provider or model in the docs (e.g. under a “Models” or “Providers” section) and mention any env vars or config keys.
 
 Adding a fully new API (new message format, token counting, tools) is a larger change; we recommend opening an issue first to discuss scope and design.
-
----
-
-### Adding New Channels
-
-Channels are how CoPaw talks to **DingTalk, Feishu, QQ, Discord, iMessage**, etc. You can add a new channel so CoPaw can work with your favorite IM or bot platform.
-
-- **Protocol:** All channels use a unified in-process contract: **native payload → `content_parts`** (e.g. `TextContent`, `ImageContent`, `FileContent`). The agent receives `AgentRequest` with these content parts; replies are sent back via the channel’s send path.
-- **Implementation:** Implement a **subclass of `BaseChannel`** (in `src/copaw/app/channels/base.py`):
-  - Set the class attribute `channel` to a unique channel key (e.g. `"telegram"`).
-  - Implement the lifecycle and message handling (e.g. receive → `content_parts` → `process` → send response).
-  - Use the manager’s queue and consumer loop if the channel is long-lived (default).
-- **Discovery:** Built-in channels are registered in `src/copaw/app/channels/registry.py`. **Custom channels** are loaded from the working directory: place a module (e.g. `custom_channels/telegram.py` or a package `custom_channels/telegram/`) that defines a `BaseChannel` subclass with a `channel` attribute.
-- **CLI:** Users install/add channels with:
-  - `copaw channels install <key>` — create a template or copy from `--path` / `--url`
-  - `copaw channels add <key>` — install and add to config
-  - `copaw channels remove <key>` — remove custom channel from `custom_channels/`
-  - `copaw channels config` — interactive config
-
-If you contribute a **new built-in channel**, add it to the registry and, if needed, a configurator so it appears in the Console and CLI. Document the new channel (auth, webhooks, etc.) in `website/public/docs/channels.*.md`.
 
 ---
 
@@ -151,7 +131,7 @@ If you contribute a **new built-in channel**, add it to the registry and, if nee
 - **Content:** Write clear, task-oriented instructions. Describe **when** the skill should be used and **how** (steps, commands, file formats). Avoid overly niche or personal workflows if targeting the **base** repository; those are great as custom or community Skills.
 - **Skills Hub:** CoPaw supports importing skills from a community hub (e.g. ClawHub). If you want your skill to be installable via hub, follow the same `SKILL.md` + `references/`/`scripts/` layout and the hub’s packaging format.
 
-Examples of in-repo base skills: **cron**, **file_reader**, **news**, **pdf**, **docx**, **pptx**, **xlsx**, **browser_visible**. Contributing a new base skill usually means: add the directory under `agents/skills/`, add a short entry in the docs (e.g. Skills table in `website/public/docs/skills.*.md`), and ensure it syncs correctly to the working directory.
+Examples of in-repo base skills: **cron**, **file_reader**, **news**, **pdf**, **browser_visible**. Contributing a new base skill usually means: add the directory under `agents/skills/`, add a short entry in the docs (e.g. Skills table in `website/public/docs/skills.*.md`), and ensure it syncs correctly to the working directory.
 
 #### Writing Effective Skill Descriptions
 

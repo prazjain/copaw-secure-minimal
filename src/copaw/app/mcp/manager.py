@@ -9,10 +9,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 from typing import Any, Dict, List, TYPE_CHECKING
 
-from agentscope.mcp import HttpStatefulClient, StdIOStatefulClient
+from agentscope.mcp import StdIOStatefulClient
 
 if TYPE_CHECKING:
     from ...config.config import MCPClientConfig, MCPConfig
@@ -217,38 +216,28 @@ class MCPClientManager:
 
     @staticmethod
     def _build_client(client_config: "MCPClientConfig") -> Any:
-        """Build MCP client instance by configured transport."""
+        """Build MCP client instance (stdio only in enterprise build)."""
+        if client_config.transport != "stdio":
+            raise ValueError(
+                f"Remote MCP transport '{client_config.transport}' is not "
+                "allowed. Only local 'stdio' transport is permitted."
+            )
+
         rebuild_info = {
             "name": client_config.name,
-            "transport": client_config.transport,
-            "url": client_config.url,
-            "headers": client_config.headers or None,
+            "transport": "stdio",
             "command": client_config.command,
             "args": list(client_config.args),
             "env": dict(client_config.env),
             "cwd": client_config.cwd or None,
         }
 
-        if client_config.transport == "stdio":
-            client = StdIOStatefulClient(
-                name=client_config.name,
-                command=client_config.command,
-                args=client_config.args,
-                env=client_config.env,
-                cwd=client_config.cwd or None,
-            )
-            setattr(client, "_copaw_rebuild_info", rebuild_info)
-            return client
-
-        headers = client_config.headers
-        if headers:
-            headers = {k: os.path.expandvars(v) for k, v in headers.items()}
-
-        client = HttpStatefulClient(
+        client = StdIOStatefulClient(
             name=client_config.name,
-            transport=client_config.transport,
-            url=client_config.url,
-            headers=headers or None,
+            command=client_config.command,
+            args=client_config.args,
+            env=client_config.env,
+            cwd=client_config.cwd or None,
         )
         setattr(client, "_copaw_rebuild_info", rebuild_info)
         return client

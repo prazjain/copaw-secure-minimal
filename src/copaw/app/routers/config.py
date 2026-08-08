@@ -19,20 +19,9 @@ from ..channels.registry import BUILTIN_CHANNEL_KEYS
 from ...config.config import (
     AgentsLLMRoutingConfig,
     ConsoleConfig,
-    DingTalkConfig,
-    DiscordConfig,
-    FeishuConfig,
     HeartbeatConfig,
-    IMessageChannelConfig,
-    MatrixConfig,
-    MattermostConfig,
-    MQTTConfig,
-    QQConfig,
     SkillScannerConfig,
     SkillScannerWhitelistEntry,
-    TelegramConfig,
-    VoiceChannelConfig,
-    WecomConfig,
 )
 
 from .schemas_config import HeartbeatBody
@@ -41,18 +30,7 @@ router = APIRouter(prefix="/config", tags=["config"])
 
 
 _CHANNEL_CONFIG_CLASS_MAP = {
-    "telegram": TelegramConfig,
-    "dingtalk": DingTalkConfig,
-    "discord": DiscordConfig,
-    "feishu": FeishuConfig,
-    "qq": QQConfig,
-    "imessage": IMessageChannelConfig,
     "console": ConsoleConfig,
-    "voice": VoiceChannelConfig,
-    "mattermost": MattermostConfig,
-    "mqtt": MQTTConfig,
-    "matrix": MatrixConfig,
-    "wecom": WecomConfig,
 }
 
 

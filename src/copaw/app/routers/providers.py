@@ -24,7 +24,6 @@ router = APIRouter(prefix="/models", tags=["models"])
 ChatModelName = Literal[
     "OpenAIChatModel",
     "AnthropicChatModel",
-    "GeminiChatModel",
 ]
 
 

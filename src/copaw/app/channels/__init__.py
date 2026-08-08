@@ -5,7 +5,7 @@ __all__ = ["ChannelManager"]
 
 
 def __getattr__(name: str):
-    """Lazy-load ChannelManager to avoid pulling feishu/lark_oapi on CLI."""
+    """Lazy-load ChannelManager to avoid heavy imports on CLI."""
     if name == "ChannelManager":
         from .manager import ChannelManager
 
